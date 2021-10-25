@@ -3,8 +3,10 @@
 #include <DHT.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <Arduino.h>
 
 #define pinoLDR A0
+#define pHsense A1
 #define bomba_reservatorio 7
 #define DHTpin 6
 #define DS18B20 5
@@ -15,17 +17,20 @@ RTC_DS3231 rtc;
 OneWire ourWire(DS18B20);
 DallasTemperature sensors(&ourWire);
 
-int tempmax = 0, tempmin = 0;
-int valorLDR = 0,  temperaturaDHT, umidadeDHT;
-float luminosidade = 0, temperaturaDS18B20 = 0;
+int tempmax = 0, tempmin = 0, from_ad = 0, measure; //pHsense = A1;
+int valorLDR = 0,  temperaturaDHT, umidadeDHT, samples = 10;
+float luminosidade = 0, temperaturaDS18B20 = 0, pHvalue = 0;
+float adc_resolution = 1024.0, Po;
 char daysOfTheWeek[7][12] = {"Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"};
 unsigned long previousMillis = 0;
 const long intervalo = 60000;
+double voltage;
 
 void rotina_irrigacao();
 void leitura_dht();
 void leituraldr();
 void leitura_ds18b20();
+void leitura_pH();
 
 void setup() {
   dht.begin();
@@ -47,6 +52,7 @@ void loop () {
   rotina_irrigacao();
   leituraldr();
   leitura_ds18b20();
+  leitura_pH();
 
   if (currentMillis - previousMillis >= intervalo) {
     previousMillis = currentMillis;
@@ -79,6 +85,9 @@ void loop () {
     Serial.print("Temperatura solução nutritiva: ");
     Serial.print(temperaturaDS18B20);
     Serial.println(" C°");
+
+    Serial.print("PH: ");
+    Serial.println(Po, 3);
 
     Serial.println("");
   }
