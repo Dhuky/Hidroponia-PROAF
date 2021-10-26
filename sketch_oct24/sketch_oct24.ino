@@ -1,9 +1,11 @@
-#include <Wire.h>
-#include <RTClib.h>
-#include <DHT.h>
-#include <OneWire.h>
 #include <DallasTemperature.h>
+#include <Adafruit_SSD1306.h>
+#include <Adafruit_GFX.h>
 #include <Arduino.h>
+#include <OneWire.h>
+#include <RTClib.h>
+#include <Wire.h>
+#include <DHT.h>
 
 #define pinoLDR A0
 #define pHsense A1
@@ -11,19 +13,19 @@
 #define DHTpin 6
 #define DS18B20 5
 
+#define OLED_RESET 4
 #define DHTtype DHT11
 DHT dht (DHTpin, DHTtype);
+Adafruit_SSD1306 display(OLED_RESET);
 RTC_DS3231 rtc;
 OneWire ourWire(DS18B20);
 DallasTemperature sensors(&ourWire);
 
-int tempmax = 0, tempmin = 0, from_ad = 0, measure; //pHsense = A1;
+int tempmax = 0, tempmin = 0, from_ad = 0, measure;
 int valorLDR = 0,  temperaturaDHT, umidadeDHT, samples = 10;
-float luminosidade = 0, temperaturaDS18B20 = 0, pHvalue = 0;
+float luminosidade = 0, temperaturaDS18B20 = 0;
 float adc_resolution = 1024.0, Po;
 char daysOfTheWeek[7][12] = {"Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"};
-unsigned long previousMillis = 0;
-const long intervalo = 60000;
 double voltage;
 
 void rotina_irrigacao();
@@ -36,16 +38,16 @@ void setup() {
   dht.begin();
   rtc.begin();
   sensors.begin();
+  Wire.begin();
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
   Serial.begin(9600);
 
   pinMode(bomba_reservatorio, OUTPUT);
-
   digitalWrite(bomba_reservatorio, LOW);
 }
 
 void loop () {
 
-  unsigned long currentMillis = millis();
   DateTime now = rtc.now();
 
   leitura_dht();
@@ -54,41 +56,79 @@ void loop () {
   leitura_ds18b20();
   leitura_pH();
 
-  if (currentMillis - previousMillis >= intervalo) {
-    previousMillis = currentMillis;
+  display.setTextColor(WHITE);
+  display.setTextSize(1);
+  
+  display.display();
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.print(now.day(), DEC);
+  display.print('/');
+  display.print(now.month(), DEC);
+  display.print('/');
+  display.print(now.year(), DEC);
+  display.setCursor(94, 0);
+  display.print(now.hour(), DEC);
+  display.print(':');
+  display.print(now.minute(), DEC);
+  display.setCursor(0, 10);
+  display.print("Temperatura: ");
+  display.print(temperaturaDHT);
+  display.print(" C");
+  display.setCursor(0, 25);
+  display.print("Umidade: ");
+  display.print(umidadeDHT);
+  display.print(" %");
+  display.setCursor(0, 10);
+  display.drawLine(0, 20, 128, 20, SSD1306_WHITE);
+  display.display();
+  delay(3000);
+  display.clearDisplay();
 
-    Serial.print(now.day(), DEC);
-    Serial.print('/');
-    Serial.print(now.month(), DEC);
-    Serial.print('/');
-    Serial.print(now.year(), DEC);
-    Serial.print(" / ");
-    Serial.print(daysOfTheWeek[now.dayOfTheWeek()]);
-    Serial.print(" / ");
-    Serial.print(now.hour(), DEC);
-    Serial.print(':');
-    Serial.print(now.minute(), DEC);
-    Serial.println();
+  display.setCursor(0, 0);
+  display.print(now.day(), DEC);
+  display.print('/');
+  display.print(now.month(), DEC);
+  display.print('/');
+  display.print(now.year(), DEC);
+  display.setCursor(94, 0);
+  display.print(now.hour(), DEC);
+  display.print(':');
+  display.print(now.minute(), DEC);
+  display.setCursor(0, 10);
+  display.print("Luminosi.: ");
+  display.print(luminosidade);
+  display.print(" %");
+  display.setCursor(0, 25);
+  display.print("Temp. sol.: ");
+  display.print(temperaturaDS18B20);
+  display.print(" C");
+  display.setCursor(0, 10);
+  display.drawLine(0, 20, 128, 20, SSD1306_WHITE);
+  display.display();
+  delay(3000);
+  display.clearDisplay();
 
-    Serial.print("Luminosidade lida: ");
-    Serial.print(luminosidade);
-    Serial.println(" %");
-
-    Serial.print ("Temperatura: ");
-    Serial.print (temperaturaDHT);
-    Serial.println(" C°");
-
-    Serial.print ("Umidade: ");
-    Serial.print (umidadeDHT);
-    Serial.println(" %");
-
-    Serial.print("Temperatura solução nutritiva: ");
-    Serial.print(temperaturaDS18B20);
-    Serial.println(" C°");
-
-    Serial.print("PH: ");
-    Serial.println(Po, 3);
-
-    Serial.println("");
-  }
+  display.setCursor(0, 0);
+  display.print(now.day(), DEC);
+  display.print('/');
+  display.print(now.month(), DEC);
+  display.print('/');
+  display.print(now.year(), DEC);
+  display.setCursor(94, 0);
+  display.print(now.hour(), DEC);
+  display.print(':');
+  display.print(now.minute(), DEC);
+  display.setCursor(0, 10);
+  display.print("Condut.: ");
+  display.print(" 100");
+  display.print(" ppm");
+  display.setCursor(0, 25);
+  display.print("pH: ");
+  display.print(Po, 3);
+  display.setCursor(0, 10);
+  display.drawLine(0, 20, 128, 20, SSD1306_WHITE);
+  display.display();
+  delay(3000);
+  display.clearDisplay();
 }
