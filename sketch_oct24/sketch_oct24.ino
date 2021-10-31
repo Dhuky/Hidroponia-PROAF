@@ -1,14 +1,17 @@
 #include <DallasTemperature.h>
 #include <Adafruit_SSD1306.h>
 #include <Adafruit_GFX.h>
+#include "GravityTDS.h"
 #include <Arduino.h>
 #include <OneWire.h>
 #include <RTClib.h>
 #include <Wire.h>
+#include <EEPROM.h>
 #include <DHT.h>
 
 #define pinoLDR A0
 #define pHsense A1
+#define TdsSensorPin A2
 #define bomba_reservatorio 7
 #define DHTpin 6
 #define DS18B20 5
@@ -20,11 +23,12 @@ Adafruit_SSD1306 display(OLED_RESET);
 RTC_DS3231 rtc;
 OneWire ourWire(DS18B20);
 DallasTemperature sensors(&ourWire);
+GravityTDS gravityTds;
 
 int tempmax = 0, tempmin = 0, from_ad = 0, measure;
 int valorLDR = 0,  temperaturaDHT, umidadeDHT, samples = 10;
 float luminosidade = 0, temperaturaDS18B20 = 0;
-float adc_resolution = 1024.0, Po;
+float adc_resolution = 1024.0, Po, temperature = 30, tdsValue;
 char daysOfTheWeek[7][12] = {"Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"};
 double voltage;
 
@@ -33,6 +37,7 @@ void leitura_dht();
 void leituraldr();
 void leitura_ds18b20();
 void leitura_pH();
+void leitura_tds();
 
 void setup() {
   dht.begin();
@@ -41,6 +46,10 @@ void setup() {
   Wire.begin();
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
   Serial.begin(9600);
+  gravityTds.setPin(TdsSensorPin);
+  gravityTds.setAref(5.0);
+  gravityTds.setAdcRange(1024);
+  gravityTds.begin();
 
   pinMode(bomba_reservatorio, OUTPUT);
   digitalWrite(bomba_reservatorio, LOW);
@@ -55,6 +64,7 @@ void loop () {
   leituraldr();
   leitura_ds18b20();
   leitura_pH();
+  leitura_tds();
 
   display.setTextColor(WHITE);
   display.setTextSize(1);
@@ -121,7 +131,7 @@ void loop () {
   display.print(now.minute(), DEC);
   display.setCursor(0, 10);
   display.print("Condut.: ");
-  display.print(" 100");
+  display.print(tdsValue, 0);
   display.print(" ppm");
   display.setCursor(0, 25);
   display.print("pH: ");
