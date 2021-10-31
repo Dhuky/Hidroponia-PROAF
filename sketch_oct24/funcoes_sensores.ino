@@ -17,8 +17,13 @@ void leitura_ds18b20() {
 }
 
 void leitura_pH() {
-
   measure = analogRead(pHsense);
   voltage = 5 / 1024.0 * measure; 
   Po = 7 + ((2.5 - voltage) / 0.18);
+}
+
+void leitura_tds(){
+  gravityTds.setTemperature(temperature);
+  gravityTds.update();
+  tdsValue = gravityTds.getTdsValue();
 }
